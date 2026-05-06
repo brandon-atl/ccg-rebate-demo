@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+.vercel
+.env
+.env.local
+.env*.local
+.venv
+__pycache__
+*.pyc
+.DS_Store
+public/screenshots/*.png

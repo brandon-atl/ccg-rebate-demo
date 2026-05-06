@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --canvas: #F4F1EA;
+  --surface: #FFFFFF;
+  --rule: #E5E1D8;
+  --rule-strong: #D6D1C5;
+  --ink: #1F2937;
+  --ink-muted: #475569;
+  --ink-subtle: #64748B;
+  --ink-faint: #94A3B8;
+  --chrome: #1B2A4E;
+  --chrome-tint: #243A66;
+  --accent: #0078D4;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+}
+
+/* ---------- Power BI surface primitives ---------- */
+
+.tile {
+  @apply rounded-md border border-rule bg-surface shadow-tile;
+}
+
+.panel {
+  @apply rounded-md border border-rule bg-surface shadow-panel;
+}
+
+.section-title {
+  @apply text-[15px] font-semibold tracking-tight text-ink;
+}
+
+.section-sub {
+  @apply mt-0.5 text-[12.5px] leading-5 text-ink-subtle;
+}
+
+.kpi-label {
+  @apply text-[10.5px] font-semibold uppercase tracking-meta text-ink-subtle;
+}
+
+.kpi-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  @apply text-[30px] font-semibold leading-[1.05] text-ink;
+}
+
+.kpi-helper {
+  @apply text-[11.5px] font-medium text-ink-muted;
+}
+
+/* ---------- Power BI matrix table ---------- */
+
+.matrix {
+  @apply w-full border-collapse text-[13px];
+}
+
+.matrix thead th {
+  @apply border-b border-rule-strong bg-[#FAF7F1] px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-meta text-ink-subtle;
+}
+
+.matrix tbody td {
+  @apply border-b border-rule px-3 py-2.5 align-top text-[13px] text-ink;
+}
+
+.matrix tbody tr:hover td {
+  background: #FAF7F1;
+}
+
+.matrix tbody tr:last-child td {
+  @apply border-b-0;
+}
+
+/* ---------- Slicer (Power BI filter row) ---------- */
+
+.slicer {
+  @apply flex flex-wrap items-stretch gap-0 overflow-hidden rounded-md border border-rule bg-surface shadow-tile;
+}
+
+.slicer-cell {
+  @apply flex min-w-[140px] flex-1 flex-col gap-1 border-r border-rule px-4 py-2 last:border-r-0;
+}
+
+.slicer-cell-label {
+  @apply text-[10px] font-semibold uppercase tracking-meta text-ink-faint;
+}
+
+.slicer-cell-value {
+  @apply truncate text-[13px] font-medium text-ink;
+}
+
+/* ---------- Stakeholder & priority pills ---------- */
+
+.tag {
+  @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-semibold tracking-meta;
+}
+
+.tag-anthony     { @apply border-owner-anthony-rule bg-owner-anthony-bg text-owner-anthony; }
+.tag-georgiana   { @apply border-owner-georgiana-rule bg-owner-georgiana-bg text-owner-georgiana; }
+.tag-leadership  { @apply border-owner-leadership-rule bg-owner-leadership-bg text-owner-leadership; }
+.tag-biteam      { @apply border-owner-biteam-rule bg-owner-biteam-bg text-owner-biteam; }
+
+.priority {
+  @apply inline-flex h-6 min-w-[34px] items-center justify-center rounded px-2 text-[11px] font-bold;
+}
+.priority-p1 { @apply bg-priority-p1-bg text-priority-p1; }
+.priority-p2 { @apply bg-priority-p2-bg text-priority-p2; }
+.priority-p3 { @apply bg-priority-p3-bg text-priority-p3; }
+
+/* ---------- Status pills (Power BI conditional formatting) ---------- */
+
+.status-pill {
+  @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium;
+}
+.status-pass     { @apply border-emerald-300 bg-emerald-50 text-emerald-700; }
+.status-review   { @apply border-amber-300 bg-amber-50 text-amber-800; }
+.status-fail     { @apply border-rose-300 bg-rose-50 text-rose-700; }
+
+/* ---------- Bar chart row (root cause horizontal bars) ---------- */
+
+.bar-track {
+  background: #F1ECDF;
+  @apply h-2 w-full overflow-hidden rounded;
+}
+.bar-fill {
+  @apply h-full rounded;
+}
+
+/* ---------- Legend ---------- */
+
+.legend-dot {
+  @apply mr-1.5 inline-block h-2 w-2 rounded-full align-middle;
+}
+
+/* ---------- Footer framing strip ---------- */
+
+.framing-strip {
+  background: linear-gradient(0deg, rgba(255,255,255,0) 0%, rgba(0,0,0,0.02) 100%);
+  border-top: 1px solid var(--rule);
+}
