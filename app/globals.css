@@ -88,7 +88,7 @@ body {
 /* ---------- Slicer (Power BI filter row) ---------- */
 
 .slicer {
-  @apply flex flex-wrap items-stretch gap-0 overflow-hidden rounded-md border border-rule bg-surface shadow-tile;
+  @apply relative flex flex-wrap items-stretch gap-0 rounded-md border border-rule bg-surface shadow-tile;
 }
 
 .slicer-cell {

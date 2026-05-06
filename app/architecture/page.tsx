@@ -1,3 +1,4 @@
+import { DataModelDiagram } from "@/components/DataModelDiagram";
 import { PageShell } from "@/components/PageShell";
 import { getArchitectureStats } from "@/lib/queries";
 
@@ -7,7 +8,7 @@ const layers = [
   {
     code: "01",
     name: "Source",
-    body: "NetSuite (transactions, vendors, programs, claims). Later: CCC ONE for operational KPIs, Square One for financial benchmarking.",
+    body: "NetSuite (transactions, vendors, programs, claims). Later: CCC ONE for affiliate KPIs, Square One for financial benchmarking.",
     accent: "#94A3B8",
   },
   {
@@ -51,7 +52,7 @@ export default async function ArchitecturePage() {
       eyebrow="CCG · Technical Walkthrough"
       title="Lakehouse-shaped artifact"
       subtitle="One source pattern, one gold rule set, one action list, one feedback loop. The point is to show how it grows into ADF / ADLS / Power BI without becoming platform theater."
-      framingNote="Architecture transfers; the platform syntax doesn&rsquo;t. Same medallion shape will absorb CCC ONE and Square One next."
+      framingNote="Architecture transfers; the platform syntax doesn't. Same medallion shape will absorb CCC ONE and Square One next."
     >
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {layers.map((layer) => (
@@ -67,6 +68,18 @@ export default async function ArchitecturePage() {
             <p className="mt-2 text-[12.5px] leading-5 text-ink-muted">{layer.body}</p>
           </div>
         ))}
+      </section>
+
+      <section className="panel mt-5">
+        <div className="border-b border-rule px-5 py-3">
+          <h2 className="section-title">Data model · entity relationships</h2>
+          <p className="section-sub">
+            Bronze → silver → gold, with the BI feedback loop closing back into the gold view.
+          </p>
+        </div>
+        <div className="px-5 py-4">
+          <DataModelDiagram />
+        </div>
       </section>
 
       <section className="mt-5 grid gap-4 lg:grid-cols-3">
@@ -111,7 +124,7 @@ export default async function ArchitecturePage() {
                   Demo
                 </div>
                 <div className="text-[13px] text-ink">{demo}</div>
-                <div className="mt-2 text-[10.5px] font-semibold uppercase tracking-meta text-accent">
+                <div className="mt-2 text-[10.5px] font-semibold uppercase tracking-meta text-accent-azure">
                   Production
                 </div>
                 <div className="text-[13px] text-ink">{prod}</div>

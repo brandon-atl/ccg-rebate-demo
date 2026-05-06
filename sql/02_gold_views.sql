@@ -283,6 +283,58 @@ GROUP BY
     parent_vendor_name, program_name, leakage_reason
 ORDER BY estimated_leakage_amount DESC NULLS LAST;
 
+-- Full action queue: every (shop, vendor, program, reason) case that ever
+-- flagged as leakage, regardless of current followup_status. The action-list
+-- page uses this so resolved/in-progress cases stay visible after the BI team
+-- works them. queue_state segments the view: open / in_progress / resolved.
+CREATE OR REPLACE VIEW vw_action_queue_full AS
+WITH base AS (
+    SELECT
+        shop_code,
+        shop_name,
+        region,
+        state,
+        affiliate_tier,
+        parent_vendor_name,
+        program_name,
+        leakage_reason,
+        MAX(root_cause) AS root_cause,
+        CASE
+            WHEN BOOL_OR(priority_level = 'P1') THEN 'P1'
+            WHEN BOOL_OR(priority_level = 'P2') THEN 'P2'
+            ELSE 'P3'
+        END AS priority_level,
+        COALESCE(MAX(followup_status), 'new') AS followup_status,
+        COUNT(*)::INT AS transaction_count,
+        ROUND(COALESCE(SUM(expected_rebate_amount), 0::numeric), 2) AS estimated_leakage_amount,
+        MAX(maturity_days)::INT AS max_maturity_days
+    FROM vw_rebate_gold
+    -- Mature, non-return purchases with non-zero expected rebate.
+    -- Whether currently flagged or already resolved by feedback.
+    WHERE maturity_days >= 60
+      AND transaction_type = 'purchase'
+      AND expected_rebate_amount > 0
+      AND leakage_reason NOT IN ('immature_transaction', 'return_or_void', 'pending_claim', 'claimed')
+    GROUP BY shop_code, shop_name, region, state, affiliate_tier,
+             parent_vendor_name, program_name, leakage_reason
+)
+SELECT
+    *,
+    CASE
+        WHEN followup_status IN ('claimed', 'unclaimable', 'false_positive') THEN 'resolved'
+        WHEN followup_status = 'in_progress' THEN 'in_progress'
+        ELSE 'open'
+    END AS queue_state,
+    CASE
+      WHEN root_cause = 'Vendor/entity mapping' THEN 'Reconcile vendor crosswalk and re-submit claim'
+      WHEN root_cause = 'Claim workflow gap'    THEN 'Validate claim status with vendor/program owner'
+      WHEN root_cause = 'Timing/window issue'   THEN 'Confirm program window dates and resubmit'
+      WHEN root_cause = 'SKU/category mapping'  THEN 'Verify SKU eligibility against program rules'
+      ELSE 'Verify shop enrollment and program coverage'
+    END AS recommended_action
+FROM base
+ORDER BY estimated_leakage_amount DESC NULLS LAST;
+
 CREATE OR REPLACE VIEW vw_data_quality_summary AS
 SELECT
     (SELECT COUNT(*) FROM fact_transaction)::INT AS total_transactions,
@@ -336,6 +388,35 @@ UNION ALL SELECT 'fact_rebate_claim', COUNT(*)::TEXT, 'bronze/raw fact' FROM fac
 UNION ALL SELECT 'fact_bi_followup', COUNT(*)::TEXT, 'operator feedback' FROM fact_bi_followup
 UNION ALL SELECT 'vw_rebate_gold', COUNT(*)::TEXT, 'gold semantic view' FROM vw_rebate_gold
 UNION ALL SELECT 'vw_shop_action_list', COUNT(*)::TEXT, 'action mart' FROM vw_shop_action_list;
+
+-- LOR (length of rental) ↔ rebate-eligible spend correlation, per shop.
+-- Surfaces the PE-spotted insight: longer repair jobs correlate with higher
+-- material spend, which means higher rebate-eligible dollars. Anthony called
+-- this out specifically in round 1.
+CREATE OR REPLACE VIEW vw_lor_rebate_correlation AS
+WITH per_shop_spend AS (
+    SELECT
+        shop_id,
+        SUM(net_eligible_spend) AS rebate_eligible_spend,
+        SUM(expected_rebate_amount) AS expected_rebate
+    FROM vw_rebate_gold
+    WHERE transaction_type = 'purchase'
+    GROUP BY shop_id
+),
+joined AS (
+    SELECT
+        s.shop_code,
+        s.shop_name,
+        s.region,
+        k.length_of_rental,
+        k.cohort_label,
+        COALESCE(p.rebate_eligible_spend, 0) AS rebate_eligible_spend,
+        COALESCE(p.expected_rebate, 0) AS expected_rebate
+    FROM dim_shop s
+    JOIN fact_shop_kpi k ON k.shop_id = s.shop_id
+    LEFT JOIN per_shop_spend p ON p.shop_id = s.shop_id
+)
+SELECT * FROM joined;
 
 CREATE OR REPLACE VIEW vw_cohort_preview AS
 SELECT

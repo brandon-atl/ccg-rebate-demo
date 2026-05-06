@@ -1,5 +1,5 @@
 import { Nav } from "@/components/Nav";
-import { SlicerBar } from "@/components/SlicerBar";
+import { StaticSlicerBar } from "@/components/SlicerBar";
 
 export function PageShell({
   eyebrow,
@@ -54,7 +54,7 @@ export function PageShell({
       <main className="mx-auto max-w-[1400px] px-6 py-5">
         {showSlicer ? (
           <div className="mb-5">
-            <SlicerBar />
+            <StaticSlicerBar />
           </div>
         ) : null}
         {children}

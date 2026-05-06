@@ -1,35 +1,72 @@
-import { StakeholderTag } from "@/components/StakeholderTag";
+"use client";
 
-type Stakeholder = "anthony" | "georgiana" | "leadership" | "biteam";
+import { motion } from "framer-motion";
+import type { Tone } from "@/lib/tones";
+
+export type { Tone };
+
+const accentByTone: Record<Tone, string> = {
+  neutral: "#94A3B8",
+  good: "#16A34A",
+  warn: "#D97706",
+  bad: "#DC2626",
+  open: "#DC2626",
+  recovered: "#16A34A",
+};
+
+const valueTintByTone: Record<Tone, string> = {
+  neutral: "text-ink",
+  good: "text-emerald-700",
+  warn: "text-amber-700",
+  bad: "text-rose-700",
+  open: "text-ink",
+  recovered: "text-emerald-700",
+};
+
+const helperTintByTone: Record<Tone, string> = {
+  neutral: "text-ink-muted",
+  good: "text-emerald-700",
+  warn: "text-amber-700",
+  bad: "text-rose-700",
+  open: "text-ink-muted",
+  recovered: "text-emerald-700",
+};
 
 export function MetricCard({
   label,
   value,
   helper,
-  helperTone = "neutral",
-  owner,
+  tone = "neutral",
+  helperTone,
+  index = 0,
 }: {
   label: string;
   value: string;
   helper?: string;
-  helperTone?: "neutral" | "up" | "down";
-  owner?: Stakeholder;
+  tone?: Tone;
+  helperTone?: Tone;
+  index?: number;
 }) {
-  const helperColor =
-    helperTone === "up" ? "text-emerald-700" :
-    helperTone === "down" ? "text-rose-700" :
-    "text-ink-muted";
+  const accent = accentByTone[tone];
+  const valueColor = valueTintByTone[tone];
+  const helperColor = helperTone ? helperTintByTone[helperTone] : helperTintByTone[tone === "good" || tone === "bad" || tone === "warn" ? "neutral" : tone];
 
   return (
-    <div className="tile px-4 pb-4 pt-3.5">
-      <div className="flex items-start justify-between gap-3">
-        <span className="kpi-label">{label}</span>
-        {owner ? <StakeholderTag who={owner} /> : null}
-      </div>
-      <div className="kpi-value mt-2.5">{value}</div>
-      {helper ? (
-        <div className={`kpi-helper mt-1 ${helperColor}`}>{helper}</div>
-      ) : null}
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04, duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+      className="tile relative overflow-hidden px-4 pb-4 pt-3.5"
+    >
+      <span
+        aria-hidden
+        className="absolute left-0 top-0 h-full w-[3px]"
+        style={{ background: accent }}
+      />
+      <div className="kpi-label">{label}</div>
+      <div className={`kpi-value mt-2.5 ${valueColor}`}>{value}</div>
+      {helper ? <div className={`kpi-helper mt-1 ${helperColor}`}>{helper}</div> : null}
+    </motion.div>
   );
 }
+

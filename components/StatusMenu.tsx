@@ -23,7 +23,16 @@ const toneClass: Record<FollowupStatus, string> = {
   false_positive: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
+const dotClass: Record<FollowupStatus, string> = {
+  new: "bg-slate-400",
+  in_progress: "bg-amber-500",
+  claimed: "bg-emerald-500",
+  unclaimable: "bg-rose-500",
+  false_positive: "bg-rose-500",
+};
+
 const options: Array<{ value: FollowupStatus; label: string; helper: string }> = [
+  { value: "new", label: "Mark new", helper: "Reopen the case" },
   { value: "in_progress", label: "Mark in progress", helper: "Outreach started" },
   { value: "claimed", label: "Mark claimed", helper: "Rebate captured" },
   { value: "unclaimable", label: "Mark unclaimable", helper: "Vendor declined" },
@@ -63,10 +72,11 @@ export function StatusMenu({
         type="button"
         disabled={pending}
         onClick={() => setOpen((v) => !v)}
-        className={`status-pill border ${toneClass[current]} cursor-pointer transition disabled:opacity-60`}
+        className={`status-pill border ${toneClass[current]} cursor-pointer transition-all duration-200 disabled:opacity-60`}
         aria-haspopup="menu"
         aria-expanded={open}
       >
+        <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${dotClass[current]}`} />
         {pending ? "saving…" : labels[current]}
         <svg
           aria-hidden="true"
@@ -81,7 +91,7 @@ export function StatusMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-full z-20 mt-1 w-56 rounded-md border border-rule bg-surface py-1 shadow-panel"
+          className="absolute right-0 top-full z-20 mt-1 w-56 origin-top-right rounded-md border border-rule bg-surface py-1 shadow-panel animate-in"
         >
           {options.map((o) => {
             const active = o.value === current;
@@ -92,10 +102,13 @@ export function StatusMenu({
                 role="menuitem"
                 onClick={() => click(o.value)}
                 disabled={pending || active}
-                className="flex w-full flex-col items-start gap-0 px-3 py-2 text-left hover:bg-canvas disabled:opacity-60"
+                className={`flex w-full flex-col items-start gap-0 px-3 py-2 text-left transition-colors hover:bg-canvas disabled:opacity-60 ${active ? "bg-canvas" : ""}`}
               >
-                <span className="text-[12.5px] font-medium text-ink">{o.label}</span>
-                <span className="text-[11px] text-ink-faint">{o.helper}</span>
+                <span className="flex items-center gap-1.5 text-[12.5px] font-medium text-ink">
+                  <span className={`inline-block h-1.5 w-1.5 rounded-full ${dotClass[o.value]}`} />
+                  {o.label}
+                </span>
+                <span className="ml-3 text-[11px] text-ink-faint">{o.helper}</span>
               </button>
             );
           })}

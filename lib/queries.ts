@@ -81,11 +81,28 @@ export type ShopActionRow = {
   recommended_action: string;
 };
 
+export type ActionQueueRow = ShopActionRow & {
+  queue_state: "open" | "in_progress" | "resolved";
+};
+
 export async function getShopActionList(limit = 75) {
   return query<ShopActionRow>(
     `SELECT *
        FROM vw_shop_action_list
        ORDER BY
+         CASE priority_level WHEN 'P1' THEN 1 WHEN 'P2' THEN 2 ELSE 3 END,
+         estimated_leakage_amount::numeric DESC
+       LIMIT $1`,
+    [limit]
+  );
+}
+
+export async function getActionQueueFull(limit = 600) {
+  return query<ActionQueueRow>(
+    `SELECT *
+       FROM vw_action_queue_full
+       ORDER BY
+         CASE queue_state WHEN 'open' THEN 1 WHEN 'in_progress' THEN 2 ELSE 3 END,
          CASE priority_level WHEN 'P1' THEN 1 WHEN 'P2' THEN 2 ELSE 3 END,
          estimated_leakage_amount::numeric DESC
        LIMIT $1`,
@@ -123,6 +140,18 @@ export async function getArchitectureStats() {
     row_count: string;
     layer: string;
   }>("SELECT * FROM vw_architecture_stats ORDER BY layer, table_name");
+}
+
+export async function getLorRebateCorrelation() {
+  return query<{
+    shop_code: string;
+    shop_name: string;
+    region: string;
+    cohort_label: string;
+    length_of_rental: string;
+    rebate_eligible_spend: string;
+    expected_rebate: string;
+  }>(`SELECT * FROM vw_lor_rebate_correlation`);
 }
 
 export async function getCohortPreview() {
