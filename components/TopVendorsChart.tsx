@@ -5,7 +5,7 @@ type VendorRow = {
   vendor_category: string;
   leakage_transactions: number;
   estimated_leakage_amount: string;
-  dominant_root_cause?: string;
+  dominant_root_cause?: string | null;
 };
 
 const rootCauseColor: Record<string, string> = {
