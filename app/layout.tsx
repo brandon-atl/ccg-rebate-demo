@@ -3,8 +3,8 @@ import { Toaster } from "@/components/Toaster";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CCG Rebate Recovery Command Center",
-  description: "Synthetic NetSuite-style rebate leakage dashboard for CCG Data Engineer interview prep.",
+  title: "CCG Rebate Leakage Dashboard",
+  description: "Synthetic NetSuite-style rebate leakage dashboard. Bronze → silver → gold pipeline with a Power BI consumption surface.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

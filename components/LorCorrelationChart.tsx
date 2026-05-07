@@ -6,6 +6,7 @@ import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAx
 export type LorPoint = {
   shop_code: string;
   shop_name: string;
+  region?: string;
   cohort_label: string;
   length_of_rental: string | number;
   rebate_eligible_spend: string | number;
@@ -17,7 +18,7 @@ const cohortColor: Record<string, string> = {
   "High-Volume Certified": "#0E8C5A",
   "OEM Specialists": "#E66C37",
   "Low-Volume General": "#94A3B8",
-  "Top Shop Tier": "#744EC2",
+  "Premier Tier": "#744EC2",
 };
 
 function pearsonR(xs: number[], ys: number[]): number {

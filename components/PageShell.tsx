@@ -62,7 +62,7 @@ export function PageShell({
           <span>
             Synthetic CCG-modeled data. No real affiliates, vendors, or transactions are represented. Bronze/silver/gold pipeline + Power BI surface.
           </span>
-          <span className="font-mono tabular-nums">v3 · gold model</span>
+          <span className="font-mono tabular-nums">v4 · gold model</span>
         </div>
       </footer>
     </div>

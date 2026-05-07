@@ -16,7 +16,7 @@ random.seed(RANDOM_SEED)
 
 REGIONS = ["Northeast", "Southeast", "Midwest", "Southwest", "West", "Canada"]
 STATES = ["GA", "FL", "TX", "CA", "PA", "OH", "NC", "AZ", "CO", "MI", "IL", "ON", "BC", "AB"]
-TIERS = ["CCG Certified", "Top Shop"]
+TIERS = ["CCG Certified", "Premier Affiliate"]
 VOLUME_TIERS = ["Low", "Mid", "High"]
 DRP_MIXES = ["single_DRP", "multi_DRP", "carrier_heavy", "light_DRP"]
 CERT_LEVELS = ["General", "OEM Certified", "Luxury OEM", "EV/ADAS Ready"]
@@ -43,7 +43,7 @@ COHORTS = [
     "High-Volume Certified",
     "OEM Specialists",
     "Low-Volume General",
-    "Top Shop Tier",
+    "Premier Tier",
 ]
 
 
@@ -226,8 +226,8 @@ def seed_claims(cur) -> None:
 
 
 def classify_cohort(volume_tier: str, drp_mix: str, cert: str, tier: str) -> str:
-    if tier == "Top Shop":
-        return "Top Shop Tier"
+    if tier == "Premier Affiliate":
+        return "Premier Tier"
     if volume_tier == "Low" and drp_mix == "light_DRP":
         return "Low-Volume General"
     if cert in {"Luxury OEM", "EV/ADAS Ready"}:

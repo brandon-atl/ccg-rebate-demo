@@ -139,6 +139,29 @@ export async function getArchitectureStats() {
   }>("SELECT * FROM vw_architecture_stats ORDER BY layer, table_name");
 }
 
+export type HomeRow = {
+  shop_id: number;
+  region: string;
+  parent_vendor_name: string;
+  vendor_category: string;
+  program_name: string;
+  root_cause: string;
+  priority_level: string;
+  leakage_flag: boolean;
+  expected_rebate_amount: string;
+  net_eligible_spend: string;
+  claim_status: string | null;
+  claimed_amount: string | null;
+  claim_date: string | null;
+  followup_status: string | null;
+  transaction_date: string;
+  maturity_days: number;
+};
+
+export async function getHomeRows() {
+  return query<HomeRow>(`SELECT * FROM vw_home_filterable`);
+}
+
 export async function getLorRebateCorrelation() {
   return query<{
     shop_code: string;

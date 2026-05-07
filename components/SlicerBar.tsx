@@ -62,25 +62,43 @@ export function SlicerBar({
   );
 }
 
-// Static (non-interactive) slicer used on pages where filtering isn't wired up yet.
-export function StaticSlicerBar() {
+// Static context badges for pages where slicers don't make sense
+// (data quality is a global pipeline check; architecture is a static doc).
+// Visually distinct from the interactive slicers — no chevrons, muted text,
+// "Context" pill so it's clearly read-only.
+export function StaticContextStrip({
+  cells,
+}: {
+  cells?: Array<{ label: string; value: string }>;
+}) {
   const refreshed = useRefreshedLabel();
-  const cells = [
-    { label: "Time", value: "Last 90 days" },
-    { label: "Region", value: "All" },
-    { label: "Vendor program", value: "All" },
-    { label: "Priority", value: "All" },
-    { label: "Maturity", value: "Mature ≥ 60 days" },
+  const defaultCells = [
+    { label: "Scope", value: "Full pipeline" },
+    { label: "Maturity rule", value: "≥ 60 days" },
+    { label: "Returns / voids", value: "excluded" },
+    { label: "Layer", value: "bronze → silver → gold" },
     { label: "Refreshed", value: refreshed ?? "—" },
   ];
+  const rows = cells ?? defaultCells;
   return (
-    <div className="slicer">
-      {cells.map((c) => (
-        <div key={c.label} className="slicer-cell">
-          <span className="slicer-cell-label">{c.label}</span>
-          <span suppressHydrationWarning className="slicer-cell-value">{c.value}</span>
+    <div className="flex flex-wrap items-stretch gap-0 overflow-hidden rounded-md border border-rule bg-canvas/60">
+      <div className="flex items-center px-3 py-2 text-[10.5px] font-semibold uppercase tracking-meta text-ink-faint">
+        Context
+      </div>
+      {rows.map((c, i) => (
+        <div
+          key={c.label}
+          className={`flex min-w-[140px] flex-1 flex-col gap-0.5 border-l border-rule px-4 py-2 ${i === rows.length - 1 ? "" : ""}`}
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-meta text-ink-faint">{c.label}</span>
+          <span suppressHydrationWarning className="truncate text-[12.5px] font-medium text-ink-muted">{c.value}</span>
         </div>
       ))}
     </div>
   );
+}
+
+// Backward-compat shim. PageShell still imports StaticSlicerBar.
+export function StaticSlicerBar() {
+  return <StaticContextStrip />;
 }

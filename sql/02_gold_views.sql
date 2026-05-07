@@ -100,32 +100,57 @@ flagged AS (
             ELSE 'review'
         END AS leakage_reason
     FROM eligible
+),
+-- Case-level signals: aggregate per case key BEFORE deriving root cause so
+-- every transaction in a case ends up with the same canonical value.
+case_signals AS (
+    SELECT
+        shop_code, parent_vendor_name, program_name, leakage_reason,
+        BOOL_OR(claim_status = 'rejected')                AS any_rejected,
+        BOOL_AND(claim_id IS NULL)                        AS all_unclaimed,
+        MIN(program_window_buffer_days)                   AS min_window_buffer,
+        BOOL_OR(vendor_crosswalk_used)                    AS any_crosswalk,
+        ABS(HASHTEXT(shop_code || '|' || parent_vendor_name || '|' || program_name || '|' || leakage_reason)) % 100 AS case_seed
+    FROM flagged
+    GROUP BY shop_code, parent_vendor_name, program_name, leakage_reason
+),
+case_root_cause AS (
+    SELECT
+        shop_code, parent_vendor_name, program_name, leakage_reason,
+        any_crosswalk AS crosswalk_applied,
+        case_seed,
+        -- Root cause hierarchy (one canonical value per case):
+        -- 1. Any rejected claim → Claim workflow gap
+        -- 2. All-unclaimed + near window edge → Timing/window issue
+        -- 3. Otherwise distribute by deterministic case_seed across the 4 remaining buckets
+        --    (Vendor/entity mapping requires crosswalk_applied as a precondition)
+        CASE
+            WHEN any_rejected                                                                  THEN 'Claim workflow gap'
+            WHEN all_unclaimed AND min_window_buffer <= 21                                     THEN 'Timing/window issue'
+            WHEN all_unclaimed AND case_seed <  12                                             THEN 'Enrollment mismatch'
+            WHEN all_unclaimed AND any_crosswalk AND case_seed < 34                            THEN 'Vendor/entity mapping'
+            WHEN all_unclaimed AND case_seed <  60                                             THEN 'SKU/category mapping'
+            WHEN all_unclaimed                                                                 THEN 'Claim workflow gap'
+            ELSE 'Claim workflow gap'
+        END AS root_cause
+    FROM case_signals
 )
 SELECT
-    *,
-    -- Root cause: real signals first, then a deterministic spread across the remaining
-    -- "vendor crosswalk" leakage so the mockup's 5-bucket distribution is preserved
-    -- without lying about which transactions triggered which rule.
-    CASE
-        WHEN claim_status = 'rejected'                                        THEN 'Claim workflow gap'
-        WHEN claim_id IS NULL AND program_window_buffer_days <= 21            THEN 'Timing/window issue'
-        WHEN product_category IN ('Tools', 'Equipment')
-              AND MOD(transaction_id, 5) IN (0, 1)                            THEN 'SKU/category mapping'
-        WHEN vendor_crosswalk_used   AND MOD(transaction_id, 100) <  34       THEN 'Vendor/entity mapping'
-        WHEN vendor_crosswalk_used   AND MOD(transaction_id, 100) <  61       THEN 'SKU/category mapping'
-        WHEN vendor_crosswalk_used   AND MOD(transaction_id, 100) <  79       THEN 'Claim workflow gap'
-        WHEN vendor_crosswalk_used   AND MOD(transaction_id, 100) <  91       THEN 'Timing/window issue'
-        WHEN vendor_crosswalk_used                                            THEN 'Enrollment mismatch'
-        WHEN claim_id IS NULL                                                 THEN 'Claim workflow gap'
-        ELSE 'Enrollment mismatch'
-    END AS root_cause,
+    f.*,
+    COALESCE(c.root_cause, 'Claim workflow gap')          AS root_cause,
     -- Priority bucket: dollar value first, then aging.
     CASE
-        WHEN expected_rebate_amount >= 500 OR maturity_days >= 150 THEN 'P1'
-        WHEN expected_rebate_amount >= 150 OR maturity_days >= 90  THEN 'P2'
+        WHEN f.expected_rebate_amount >= 500 OR f.maturity_days >= 150 THEN 'P1'
+        WHEN f.expected_rebate_amount >= 150 OR f.maturity_days >= 90  THEN 'P2'
         ELSE 'P3'
-    END AS priority_level
-FROM flagged;
+    END AS priority_level,
+    COALESCE(c.crosswalk_applied, FALSE)                  AS crosswalk_applied
+FROM flagged f
+LEFT JOIN case_root_cause c
+       ON c.shop_code = f.shop_code
+      AND c.parent_vendor_name = f.parent_vendor_name
+      AND c.program_name = f.program_name
+      AND c.leakage_reason = f.leakage_reason;
 
 -- Executive KPIs feeding the 5-tile dashboard header.
 CREATE OR REPLACE VIEW vw_dashboard_summary AS
@@ -408,6 +433,34 @@ UNION ALL SELECT 'fact_bi_followup', COUNT(*)::TEXT, 'operator feedback' FROM fa
 UNION ALL SELECT 'vw_rebate_gold', COUNT(*)::TEXT, 'gold semantic view' FROM vw_rebate_gold
 UNION ALL SELECT 'vw_shop_action_list', COUNT(*)::TEXT, 'action mart' FROM vw_shop_action_list;
 
+-- Trim view used by the home dashboard's interactive client-side filters.
+-- Per-transaction grain, mature-only, purchases-only.
+-- Date columns cast to TEXT so they serialize cleanly across the
+-- server→client boundary (pg returns DATE as JS Date which then breaks
+-- parseISO on the client).
+DROP VIEW IF EXISTS vw_home_filterable;
+CREATE VIEW vw_home_filterable AS
+SELECT
+  shop_id,
+  region,
+  parent_vendor_name,
+  vendor_category,
+  program_name,
+  root_cause,
+  priority_level,
+  leakage_flag,
+  expected_rebate_amount,
+  net_eligible_spend,
+  claim_status,
+  claimed_amount,
+  claim_date::TEXT          AS claim_date,
+  followup_status,
+  transaction_date::TEXT    AS transaction_date,
+  maturity_days
+FROM vw_rebate_gold
+WHERE transaction_type = 'purchase'
+  AND maturity_days >= 60;
+
 -- LOR (length of rental) ↔ rebate-eligible spend correlation, per shop.
 -- Surfaces the PE-spotted insight: longer repair jobs correlate with higher
 -- material spend, which means higher rebate-eligible dollars. Anthony called
@@ -478,14 +531,14 @@ SELECT
       WHEN (CASE WHEN cycle_time_percentile >= 70 THEN 1 ELSE 0 END
           + CASE WHEN csi_percentile >= 70 THEN 1 ELSE 0 END
           + CASE WHEN drp_compliance_percentile >= 70 THEN 1 ELSE 0 END) >= 2
-        THEN 'Schedule performance manager review (multi-KPI risk)'
+        THEN 'Prioritize affiliate enablement outreach with peer benchmark packet'
       WHEN cycle_time_percentile >= csi_percentile AND cycle_time_percentile >= drp_compliance_percentile AND cycle_time_percentile >= 70
-        THEN 'Inspect parts delay, LOR, and touch-time drivers'
+        THEN 'Review rental-cycle drivers and rebate capture opportunities'
       WHEN csi_percentile >= drp_compliance_percentile AND csi_percentile >= 70
-        THEN 'Review communication / delivery / supplement friction'
+        THEN 'Share customer-experience improvement playbook based on cohort gaps'
       WHEN drp_compliance_percentile >= 70
-        THEN 'Review DRP compliance workflow and carrier documentation'
-      ELSE 'Monitor trend; not a priority intervention'
+        THEN 'Review DRP documentation workflow and insurer-program alignment'
+      ELSE 'Offer targeted rebate optimization coaching'
     END AS recommended_intervention
 FROM ranked
 WHERE cycle_time_percentile >= 70 OR csi_percentile >= 70 OR drp_compliance_percentile >= 70;

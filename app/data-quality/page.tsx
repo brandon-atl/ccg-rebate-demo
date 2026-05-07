@@ -1,5 +1,6 @@
 import { MetricCard } from "@/components/MetricCard";
 import { PageShell } from "@/components/PageShell";
+import { StaticContextStrip } from "@/components/SlicerBar";
 import { getDataQualitySummary, getQualityChecks } from "@/lib/queries";
 import { number } from "@/lib/format";
 
@@ -21,7 +22,11 @@ export default async function DataQualityPage() {
       eyebrow="CCG · Trust Layer"
       title="Data Quality &amp; Maturity Safeguards"
       subtitle="Pipeline trust view: row counts, grain checks, returns/voids exclusion, vendor crosswalk usage, and the 60-day rebate maturity rule. Every flag downstream is gated by these checks."
+      showSlicer={false}
     >
+      <div className="mb-4 md:mb-5">
+        <StaticContextStrip />
+      </div>
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <MetricCard
           label="Raw transactions"
