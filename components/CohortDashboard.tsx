@@ -7,14 +7,19 @@ import { MetricCard } from "@/components/MetricCard";
 import { Slicer } from "@/components/Slicer";
 import { number, pct } from "@/lib/format";
 
-export type CohortAggRow = {
+export type CohortShop = {
+  shop_id: number;
+  shop_code: string;
+  shop_name: string;
+  region: string;
+  affiliate_tier: string;
   cohort_label: string;
-  shop_count: number;
   avg_cycle_time_days: string;
-  avg_csi_score: string;
-  avg_drp_compliance: string;
-  avg_rebate_capture_rate: string;
-  intervention_priority_count: number;
+  csi_score: string;
+  drp_compliance: string;
+  rebate_capture_rate: string;
+  length_of_rental: string;
+  intervention_flag: boolean;
 };
 
 export type InterventionRow = {
@@ -30,10 +35,10 @@ export type InterventionRow = {
 };
 
 export function CohortDashboard({
-  cohorts,
+  shops,
   interventions,
 }: {
-  cohorts: CohortAggRow[];
+  shops: CohortShop[];
   interventions: InterventionRow[];
 }) {
   const [region, setRegion] = useState("all");
@@ -47,17 +52,25 @@ export function CohortDashboard({
   const regions = useMemo(
     () => [
       { value: "all", label: "All regions" },
-      ...Array.from(new Set(interventions.map((r) => r.region))).sort().map((v) => ({ value: v, label: v })),
+      ...Array.from(new Set(shops.map((r) => r.region))).sort().map((v) => ({ value: v, label: v })),
     ],
-    [interventions]
+    [shops]
   );
   const cohortOptions = useMemo(
     () => [
       { value: "all", label: "All cohorts" },
-      ...cohorts.map((c) => ({ value: c.cohort_label, label: c.cohort_label })),
+      ...Array.from(new Set(shops.map((r) => r.cohort_label))).sort().map((v) => ({ value: v, label: v })),
     ],
-    [cohorts]
+    [shops]
   );
+
+  const filteredShops = useMemo(() => {
+    return shops.filter((s) => {
+      if (region !== "all" && s.region !== region) return false;
+      if (cohort !== "all" && s.cohort_label !== cohort) return false;
+      return true;
+    });
+  }, [shops, region, cohort]);
 
   const filteredInterventions = useMemo(() => {
     return interventions.filter((r) => {
@@ -67,28 +80,57 @@ export function CohortDashboard({
     });
   }, [interventions, region, cohort]);
 
-  // Filtered cohort aggregates: when filter is by cohort, just that one;
-  // otherwise show all cohorts with intervention counts updated by region filter.
-  const filteredCohorts = useMemo(() => {
-    if (region === "all" && cohort === "all") return cohorts;
-
-    // Recompute intervention_priority_count from filtered interventions.
+  // Aggregate cohorts from filtered shop set
+  const cohortAggs = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        shop_count: number;
+        sum_cycle: number;
+        sum_csi: number;
+        sum_drp: number;
+        sum_capture: number;
+        intervention_count: number;
+      }
+    >();
+    for (const s of filteredShops) {
+      const cur = map.get(s.cohort_label) ?? {
+        shop_count: 0,
+        sum_cycle: 0,
+        sum_csi: 0,
+        sum_drp: 0,
+        sum_capture: 0,
+        intervention_count: 0,
+      };
+      cur.shop_count += 1;
+      cur.sum_cycle += Number(s.avg_cycle_time_days ?? 0);
+      cur.sum_csi += Number(s.csi_score ?? 0);
+      cur.sum_drp += Number(s.drp_compliance ?? 0);
+      cur.sum_capture += Number(s.rebate_capture_rate ?? 0);
+      if (s.intervention_flag) cur.intervention_count += 1;
+      map.set(s.cohort_label, cur);
+    }
+    // Cross-reference filtered interventions for the actual top-N count
     const interventionCountByLabel = new Map<string, number>();
     for (const i of filteredInterventions) {
       interventionCountByLabel.set(i.cohort_label, (interventionCountByLabel.get(i.cohort_label) ?? 0) + 1);
     }
+    return Array.from(map.entries())
+      .map(([cohort_label, v]) => ({
+        cohort_label,
+        shop_count: v.shop_count,
+        avg_cycle_time_days: (v.sum_cycle / v.shop_count).toFixed(1),
+        avg_csi_score: (v.sum_csi / v.shop_count).toFixed(1),
+        avg_drp_compliance: (v.sum_drp / v.shop_count).toFixed(1),
+        avg_rebate_capture_rate: (v.sum_capture / v.shop_count).toFixed(1),
+        intervention_priority_count: interventionCountByLabel.get(cohort_label) ?? 0,
+      }))
+      .sort((a, b) => b.intervention_priority_count - a.intervention_priority_count || b.shop_count - a.shop_count);
+  }, [filteredShops, filteredInterventions]);
 
-    let xs = cohorts;
-    if (cohort !== "all") xs = xs.filter((c) => c.cohort_label === cohort);
-    return xs.map((c) => ({
-      ...c,
-      intervention_priority_count: interventionCountByLabel.get(c.cohort_label) ?? 0,
-    }));
-  }, [cohorts, filteredInterventions, region, cohort]);
-
-  const totalShops = filteredCohorts.reduce((s, r) => s + Number(r.shop_count), 0);
+  const totalShops = filteredShops.length;
+  const peerCohorts = cohortAggs.length;
   const totalInterventions = filteredInterventions.length;
-  const peerCohorts = filteredCohorts.length;
 
   const activeFilters = [
     region !== "all" ? `Region · ${region}` : null,
@@ -155,11 +197,11 @@ export function CohortDashboard({
             <p className="section-sub">Where the performance team&rsquo;s outreach effort actually pays back.</p>
           </div>
           <div className="px-5 py-4">
-            {filteredCohorts.length === 0 ? (
+            {cohortAggs.length === 0 ? (
               <div className="py-8 text-center text-[12.5px] text-ink-faint">No cohorts match the current filters.</div>
             ) : (
               <BarList
-                rows={filteredCohorts as unknown as Record<string, string | number | null>[]}
+                rows={cohortAggs as unknown as Record<string, string | number | null>[]}
                 labelKey="cohort_label"
                 valueKey="intervention_priority_count"
                 unit="count"
@@ -178,22 +220,29 @@ export function CohortDashboard({
               <thead>
                 <tr>
                   <th>Cohort</th>
-                  <th className="text-right">Shops</th>
-                  <th className="text-right">Cycle</th>
-                  <th className="text-right">CSI</th>
-                  <th className="text-right">DRP</th>
+                  <th className="text-center">Shops</th>
+                  <th className="text-center">Cycle</th>
+                  <th className="text-center">CSI</th>
+                  <th className="text-center">DRP</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredCohorts.map((row) => (
+                {cohortAggs.map((row) => (
                   <tr key={row.cohort_label}>
                     <td className="font-semibold text-ink">{row.cohort_label}</td>
-                    <td className="text-right font-mono tabular-nums">{row.shop_count}</td>
-                    <td className="text-right font-mono tabular-nums">{row.avg_cycle_time_days}d</td>
-                    <td className="text-right font-mono tabular-nums">{pct(row.avg_csi_score, 1)}</td>
-                    <td className="text-right font-mono tabular-nums">{pct(row.avg_drp_compliance, 1)}</td>
+                    <td className="text-center font-mono tabular-nums">{row.shop_count}</td>
+                    <td className="text-center font-mono tabular-nums">{row.avg_cycle_time_days}d</td>
+                    <td className="text-center font-mono tabular-nums">{pct(row.avg_csi_score, 1)}</td>
+                    <td className="text-center font-mono tabular-nums">{pct(row.avg_drp_compliance, 1)}</td>
                   </tr>
                 ))}
+                {cohortAggs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-[12.5px] text-ink-faint">
+                      No cohorts match the current filters.
+                    </td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>
@@ -214,9 +263,9 @@ export function CohortDashboard({
               <tr>
                 <th>Affiliate shop</th>
                 <th>Cohort</th>
-                <th className="text-right">Cycle outlier %</th>
-                <th className="text-right">CSI risk %</th>
-                <th className="text-right">DRP risk %</th>
+                <th className="text-center">Cycle outlier %</th>
+                <th className="text-center">CSI risk %</th>
+                <th className="text-center">DRP risk %</th>
                 <th>Recommended enablement</th>
               </tr>
             </thead>
@@ -237,9 +286,9 @@ export function CohortDashboard({
                       </div>
                     </td>
                     <td>{row.cohort_label}</td>
-                    <td className="text-right font-mono tabular-nums">{row.cycle_time_percentile}</td>
-                    <td className="text-right font-mono tabular-nums">{row.csi_percentile}</td>
-                    <td className="text-right font-mono tabular-nums">{row.drp_compliance_percentile}</td>
+                    <td className="text-center font-mono tabular-nums">{row.cycle_time_percentile}</td>
+                    <td className="text-center font-mono tabular-nums">{row.csi_percentile}</td>
+                    <td className="text-center font-mono tabular-nums">{row.drp_compliance_percentile}</td>
                     <td className="min-w-[300px] text-ink-muted">{row.recommended_intervention}</td>
                   </tr>
                 ))

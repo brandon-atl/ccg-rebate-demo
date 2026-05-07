@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from "recharts";
 
 export type LorPoint = {
+  shop_id: number;
   shop_code: string;
   shop_name: string;
   region?: string;

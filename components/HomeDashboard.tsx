@@ -96,15 +96,24 @@ export function HomeDashboard({
     });
   }, [rows, time, region, vendor, priority]);
 
-  // Apply region/vendor filter to LOR (priority/time don't apply to LOR shop snapshot)
+  // LOR scatter respects every active filter. We derive the set of
+  // shop_ids surviving the home filter from filteredRows below; if any
+  // filter is active, the scatter is restricted to those shops.
+  // (Defined below filteredRows.)
+
+  // shop_ids surviving the home filter — used to scope the LOR scatter
+  // so vendor / priority / time all affect the chart.
+  const filteredShopIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const r of filteredRows) ids.add(r.shop_id);
+    return ids;
+  }, [filteredRows]);
+
   const filteredLor = useMemo(() => {
-    if (region === "all" && vendor === "all") return lor;
-    // We don't have vendor-level data per shop in lor; only region maps cleanly.
-    if (region !== "all") {
-      return lor.filter((p) => p.region === region);
-    }
-    return lor;
-  }, [lor, region, vendor]);
+    const anyActive = time !== "90d" || region !== "all" || vendor !== "all" || priority !== "all";
+    if (!anyActive) return lor;
+    return lor.filter((p) => filteredShopIds.has(p.shop_id));
+  }, [lor, filteredShopIds, time, region, vendor, priority]);
 
   // Aggregate for KPI tiles
   const summary = useMemo(() => {

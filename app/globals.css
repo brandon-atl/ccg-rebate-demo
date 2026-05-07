@@ -74,7 +74,7 @@ body {
 }
 
 .matrix tbody td {
-  @apply border-b border-rule px-3 py-2.5 align-top text-[13px] text-ink;
+  @apply border-b border-rule px-3 py-2.5 align-middle text-[13px] text-ink;
 }
 
 .matrix tbody tr:hover td {

@@ -1,12 +1,12 @@
 import { CohortDashboard } from "@/components/CohortDashboard";
 import { PageShell } from "@/components/PageShell";
-import { getCohortPreview, getTopCohortInterventions } from "@/lib/queries";
+import { getCohortShops, getTopCohortInterventions } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function CohortPreviewPage() {
-  const [cohorts, interventions] = await Promise.all([
-    getCohortPreview(),
+  const [shops, interventions] = await Promise.all([
+    getCohortShops(),
     getTopCohortInterventions(),
   ]);
 
@@ -17,7 +17,7 @@ export default async function CohortPreviewPage() {
       subtitle="Companion view for the performance management team — same shop dimension, peer-relative cohorts. Useful when the conversation moves from rebate leakage to affiliate enablement."
       showSlicer={false}
     >
-      <CohortDashboard cohorts={cohorts} interventions={interventions} />
+      <CohortDashboard shops={shops} interventions={interventions} />
     </PageShell>
   );
 }

@@ -463,9 +463,9 @@ WHERE transaction_type = 'purchase'
 
 -- LOR (length of rental) ↔ rebate-eligible spend correlation, per shop.
 -- Surfaces the PE-spotted insight: longer repair jobs correlate with higher
--- material spend, which means higher rebate-eligible dollars. Anthony called
--- this out specifically in round 1.
-CREATE OR REPLACE VIEW vw_lor_rebate_correlation AS
+-- material spend, which means higher rebate-eligible dollars.
+DROP VIEW IF EXISTS vw_lor_rebate_correlation;
+CREATE VIEW vw_lor_rebate_correlation AS
 WITH per_shop_spend AS (
     SELECT
         shop_id,
@@ -474,21 +474,41 @@ WITH per_shop_spend AS (
     FROM vw_rebate_gold
     WHERE transaction_type = 'purchase'
     GROUP BY shop_id
-),
-joined AS (
-    SELECT
-        s.shop_code,
-        s.shop_name,
-        s.region,
-        k.length_of_rental,
-        k.cohort_label,
-        COALESCE(p.rebate_eligible_spend, 0) AS rebate_eligible_spend,
-        COALESCE(p.expected_rebate, 0) AS expected_rebate
-    FROM dim_shop s
-    JOIN fact_shop_kpi k ON k.shop_id = s.shop_id
-    LEFT JOIN per_shop_spend p ON p.shop_id = s.shop_id
 )
-SELECT * FROM joined;
+SELECT
+    s.shop_id,
+    s.shop_code,
+    s.shop_name,
+    s.region,
+    k.length_of_rental,
+    k.cohort_label,
+    COALESCE(p.rebate_eligible_spend, 0) AS rebate_eligible_spend,
+    COALESCE(p.expected_rebate, 0) AS expected_rebate
+FROM dim_shop s
+JOIN fact_shop_kpi k ON k.shop_id = s.shop_id
+LEFT JOIN per_shop_spend p ON p.shop_id = s.shop_id;
+
+-- Per-shop cohort metadata used by the cohort dashboard's interactive
+-- filters so Region + Cohort change every visual (not just the queue).
+CREATE OR REPLACE VIEW vw_cohort_shops AS
+SELECT
+  s.shop_id,
+  s.shop_code,
+  s.shop_name,
+  s.region,
+  s.affiliate_tier,
+  k.cohort_label,
+  ROUND(k.avg_cycle_time_days::numeric, 1) AS avg_cycle_time_days,
+  ROUND(k.csi_score::numeric, 1) AS csi_score,
+  ROUND(k.drp_compliance::numeric, 1) AS drp_compliance,
+  ROUND(k.rebate_capture_rate::numeric, 1) AS rebate_capture_rate,
+  ROUND(k.length_of_rental::numeric, 2) AS length_of_rental,
+  CASE
+    WHEN k.csi_score < 86 OR k.drp_compliance < 82 OR k.avg_cycle_time_days > 10
+    THEN TRUE ELSE FALSE
+  END AS intervention_flag
+FROM dim_shop s
+JOIN fact_shop_kpi k ON k.shop_id = s.shop_id;
 
 CREATE OR REPLACE VIEW vw_cohort_preview AS
 SELECT
@@ -527,17 +547,18 @@ SELECT
       ((GREATEST(cycle_time_percentile, 0) + GREATEST(csi_percentile, 0) + GREATEST(drp_compliance_percentile, 0)) / 3)::numeric,
       1
     ) AS severity_score,
+    -- Dominant single-KPI risk first; multi-KPI coaching only when ALL THREE
+    -- KPIs are at risk. Otherwise the demo's top-N rows (sorted by severity)
+    -- collapse into a single "multi-KPI" string and look hardcoded.
     CASE
-      WHEN (CASE WHEN cycle_time_percentile >= 70 THEN 1 ELSE 0 END
-          + CASE WHEN csi_percentile >= 70 THEN 1 ELSE 0 END
-          + CASE WHEN drp_compliance_percentile >= 70 THEN 1 ELSE 0 END) >= 2
-        THEN 'Prioritize affiliate enablement outreach with peer benchmark packet'
+      WHEN cycle_time_percentile >= 70 AND csi_percentile >= 70 AND drp_compliance_percentile >= 70
+        THEN 'Offer targeted performance coaching across cycle, CSI, and DRP'
       WHEN cycle_time_percentile >= csi_percentile AND cycle_time_percentile >= drp_compliance_percentile AND cycle_time_percentile >= 70
         THEN 'Review rental-cycle drivers and rebate capture opportunities'
       WHEN csi_percentile >= drp_compliance_percentile AND csi_percentile >= 70
         THEN 'Share customer-experience improvement playbook based on cohort gaps'
       WHEN drp_compliance_percentile >= 70
-        THEN 'Review DRP documentation workflow and insurer-program alignment'
+        THEN 'Review insurer / DRP documentation gaps and program alignment'
       ELSE 'Offer targeted rebate optimization coaching'
     END AS recommended_intervention
 FROM ranked

@@ -164,6 +164,7 @@ export async function getHomeRows() {
 
 export async function getLorRebateCorrelation() {
   return query<{
+    shop_id: number;
     shop_code: string;
     shop_name: string;
     region: string;
@@ -172,6 +173,23 @@ export async function getLorRebateCorrelation() {
     rebate_eligible_spend: string;
     expected_rebate: string;
   }>(`SELECT * FROM vw_lor_rebate_correlation`);
+}
+
+export async function getCohortShops() {
+  return query<{
+    shop_id: number;
+    shop_code: string;
+    shop_name: string;
+    region: string;
+    affiliate_tier: string;
+    cohort_label: string;
+    avg_cycle_time_days: string;
+    csi_score: string;
+    drp_compliance: string;
+    rebate_capture_rate: string;
+    length_of_rental: string;
+    intervention_flag: boolean;
+  }>(`SELECT * FROM vw_cohort_shops`);
 }
 
 export async function getCohortPreview() {

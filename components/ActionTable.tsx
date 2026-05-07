@@ -52,9 +52,13 @@ function rowPrecision(row: ActionQueueRow): number {
   const jitter = ((seed % 11) - 5) / 100; // ±5%
   return Math.max(0.55, Math.min(0.99, base + jitter));
 }
+// Tone is derived from the *displayed* integer percent (Math.round(p * 100))
+// so identical visible values share a color even when the raw values differ
+// by a few hundredths of a percent.
 function precisionTone(p: number): { dot: string; label: string } {
-  if (p >= 0.9) return { dot: "bg-emerald-500", label: "High" };
-  if (p >= 0.8) return { dot: "bg-amber-500", label: "Medium" };
+  const pct = Math.round(p * 100);
+  if (pct >= 90) return { dot: "bg-emerald-500", label: "High" };
+  if (pct >= 80) return { dot: "bg-amber-500", label: "Medium" };
   return { dot: "bg-rose-500", label: "Low" };
 }
 
