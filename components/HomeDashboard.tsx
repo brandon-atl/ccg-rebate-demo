@@ -128,14 +128,7 @@ export function HomeDashboard({
     const ytdStart = new Date(new Date().getFullYear(), 0, 1);
     let captureBaseline = 0; // claimed + leakage (denominator)
 
-    // For QoQ delta
-    const now = new Date();
-    const qStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-    const prevQStart = subMonths(qStart, 3);
-    let thisQClaimed = 0, thisQLeak = 0, lastQClaimed = 0, lastQLeak = 0;
-
     for (const r of filteredRows) {
-      const txDate = parseISO(r.transaction_date);
       const exp = Number(r.expected_rebate_amount ?? 0);
       const claim = Number(r.claimed_amount ?? 0);
 
@@ -157,24 +150,40 @@ export function HomeDashboard({
         labeledTotal += 1;
         if (r.followup_status === "false_positive") falsePositives += 1;
       }
-
-      if (txDate >= qStart) {
-        if (r.claim_status === "claimed") thisQClaimed += claim;
-        if (r.leakage_flag) thisQLeak += exp;
-      } else if (txDate >= prevQStart) {
-        if (r.claim_status === "claimed") lastQClaimed += claim;
-        if (r.leakage_flag) lastQLeak += exp;
-      }
     }
 
     captureBaseline = claimedDollars + leakageDollars;
     const captureRate = captureBaseline > 0 ? (claimedDollars / captureBaseline) * 100 : 0;
     const fpRate = labeledTotal > 0 ? (falsePositives / labeledTotal) * 100 : 0;
-    const thisQDenom = thisQClaimed + thisQLeak;
+    // QoQ: compare the last fully-matured calendar quarter to the one before it.
+    // The current quarter is structurally empty under the 60-day maturity gate,
+    // so we step back. Computed against `rows` (not filteredRows) so the time
+    // slicer doesn't blank out the comparison; non-time filters still apply.
+    const now = new Date();
+    const lastFullQEnd = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    const lastFullQStart = subMonths(lastFullQEnd, 3);
+    const priorFullQStart = subMonths(lastFullQStart, 3);
+    let lastQClaimed = 0, lastQLeak = 0, priorQClaimed = 0, priorQLeak = 0;
+    for (const r of rows) {
+      if (region !== "all" && r.region !== region) continue;
+      if (vendor !== "all" && r.parent_vendor_name !== vendor) continue;
+      if (priority !== "all" && r.priority_level !== priority) continue;
+      const txDate = parseISO(r.transaction_date);
+      const exp = Number(r.expected_rebate_amount ?? 0);
+      const claim = Number(r.claimed_amount ?? 0);
+      if (txDate >= lastFullQStart && txDate < lastFullQEnd) {
+        if (r.claim_status === "claimed") lastQClaimed += claim;
+        if (r.leakage_flag) lastQLeak += exp;
+      } else if (txDate >= priorFullQStart && txDate < lastFullQStart) {
+        if (r.claim_status === "claimed") priorQClaimed += claim;
+        if (r.leakage_flag) priorQLeak += exp;
+      }
+    }
     const lastQDenom = lastQClaimed + lastQLeak;
+    const priorQDenom = priorQClaimed + priorQLeak;
     const qoq =
-      thisQDenom > 0 && lastQDenom > 0
-        ? (thisQClaimed / thisQDenom) * 100 - (lastQClaimed / lastQDenom) * 100
+      lastQDenom > 0 && priorQDenom > 0
+        ? (lastQClaimed / lastQDenom) * 100 - (priorQClaimed / priorQDenom) * 100
         : 0;
     const projectedAnnual = Math.max(
       0,
@@ -192,7 +201,7 @@ export function HomeDashboard({
       p1Count: p1Shops.size,
       flaggedShopsCount: flaggedShops.size,
     };
-  }, [filteredRows]);
+  }, [filteredRows, rows, region, vendor, priority]);
 
   // Top vendors aggregation (only leakage rows)
   const topVendors = useMemo(() => {

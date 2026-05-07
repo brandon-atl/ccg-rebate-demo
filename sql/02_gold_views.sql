@@ -87,12 +87,14 @@ flagged AS (
             WHEN claim_status = 'rejected' THEN TRUE
             ELSE FALSE
         END AS leakage_flag,
+        -- leakage_reason describes the *underlying transaction state* and is
+        -- intentionally independent of followup_status. Operator classification
+        -- (claimed / unclaimable / false_positive) flows through followup_status
+        -- + queue_state instead, so the case grain key (and therefore the
+        -- canonical root_cause) stays stable across status flips.
         CASE
             WHEN maturity_days < 60 THEN 'immature_transaction'
             WHEN transaction_type IN ('return', 'void') THEN 'return_or_void'
-            WHEN followup_status = 'false_positive' THEN 'marked_false_positive'
-            WHEN followup_status = 'unclaimable' THEN 'marked_unclaimable'
-            WHEN followup_status = 'claimed' THEN 'resolved_claimed'
             WHEN claim_id IS NULL THEN 'eligible_unclaimed'
             WHEN claim_status = 'rejected' THEN 'rejected_claim'
             WHEN claim_status = 'pending' THEN 'pending_claim'
