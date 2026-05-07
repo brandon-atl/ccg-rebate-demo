@@ -547,11 +547,14 @@ SELECT
       ((GREATEST(cycle_time_percentile, 0) + GREATEST(csi_percentile, 0) + GREATEST(drp_compliance_percentile, 0)) / 3)::numeric,
       1
     ) AS severity_score,
-    -- Dominant single-KPI risk first; multi-KPI coaching only when ALL THREE
-    -- KPIs are at risk. Otherwise the demo's top-N rows (sorted by severity)
-    -- collapse into a single "multi-KPI" string and look hardcoded.
+    -- Dominant single-KPI risk wins almost always.
+    -- Multi-KPI coaching ONLY when all three are tightly clustered ≥ 90 (a
+    -- true balanced outlier). Without the tight clustering condition the
+    -- top-N rows collapse into a single "multi-KPI" string.
     CASE
-      WHEN cycle_time_percentile >= 70 AND csi_percentile >= 70 AND drp_compliance_percentile >= 70
+      WHEN cycle_time_percentile >= 90 AND csi_percentile >= 90 AND drp_compliance_percentile >= 90
+           AND GREATEST(cycle_time_percentile, csi_percentile, drp_compliance_percentile) -
+               LEAST(cycle_time_percentile, csi_percentile, drp_compliance_percentile) <= 8
         THEN 'Offer targeted performance coaching across cycle, CSI, and DRP'
       WHEN cycle_time_percentile >= csi_percentile AND cycle_time_percentile >= drp_compliance_percentile AND cycle_time_percentile >= 70
         THEN 'Review rental-cycle drivers and rebate capture opportunities'
