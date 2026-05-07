@@ -20,9 +20,8 @@ export default async function ActionListPage() {
   return (
     <PageShell
       eyebrow="CCG · Rebate Recovery"
-      title="BI team action list"
+      title="BI Team Action List"
       subtitle="Operator queue. Slicers filter; column headers sort. Click a status pill to classify a flagged case — feedback flows into fact_bi_followup and the gold view recomputes."
-      framingNote="Closed-loop trust: the BI team's labels (claimed / unclaimable / false-positive) tighten the rules over time. Resolved cases stay visible under the Resolved tab — nothing is lost."
       showSlicer={false}
     >
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">

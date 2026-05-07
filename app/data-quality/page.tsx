@@ -19,9 +19,8 @@ export default async function DataQualityPage() {
   return (
     <PageShell
       eyebrow="CCG · Trust Layer"
-      title="Data quality &amp; maturity safeguards"
+      title="Data Quality &amp; Maturity Safeguards"
       subtitle="Pipeline trust view: row counts, grain checks, returns/voids exclusion, vendor crosswalk usage, and the 60-day rebate maturity rule. Every flag downstream is gated by these checks."
-      framingNote="Validate at ingestion → monitor in the warehouse → surface anomalies to humans. Same discipline at every scale."
     >
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <MetricCard

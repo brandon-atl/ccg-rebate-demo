@@ -20,17 +20,14 @@ export async function getDashboardSummary() {
   return rows[0];
 }
 
-export async function getVendorLeakage() {
+export async function getVendorLeakage(limit = 8) {
   return query<{
     parent_vendor_name: string;
     vendor_category: string;
     leakage_transactions: number;
     estimated_leakage_amount: string;
-  }>(`
-    SELECT *
-    FROM vw_vendor_leakage
-    LIMIT 10
-  `);
+    dominant_root_cause: string | null;
+  }>(`SELECT * FROM vw_vendor_leakage LIMIT $1`, [limit]);
 }
 
 export async function getLeakageReasonBreakdown() {

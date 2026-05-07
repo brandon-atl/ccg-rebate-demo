@@ -185,15 +185,34 @@ SELECT
 FROM base;
 
 CREATE OR REPLACE VIEW vw_vendor_leakage AS
+WITH agg AS (
+    SELECT
+        parent_vendor_name,
+        vendor_category,
+        COUNT(*) FILTER (WHERE leakage_flag = TRUE)::INT AS leakage_transactions,
+        ROUND(COALESCE(SUM(expected_rebate_amount) FILTER (WHERE leakage_flag = TRUE), 0::numeric), 2) AS estimated_leakage_amount
+    FROM vw_rebate_gold
+    GROUP BY parent_vendor_name, vendor_category
+    HAVING COUNT(*) FILTER (WHERE leakage_flag = TRUE) > 0
+),
+dominant AS (
+    SELECT DISTINCT ON (parent_vendor_name)
+        parent_vendor_name,
+        root_cause AS dominant_root_cause
+    FROM vw_rebate_gold
+    WHERE leakage_flag = TRUE
+    GROUP BY parent_vendor_name, root_cause
+    ORDER BY parent_vendor_name, COUNT(*) DESC
+)
 SELECT
-    parent_vendor_name,
-    vendor_category,
-    COUNT(*) FILTER (WHERE leakage_flag = TRUE)::INT AS leakage_transactions,
-    ROUND(COALESCE(SUM(expected_rebate_amount) FILTER (WHERE leakage_flag = TRUE), 0::numeric), 2) AS estimated_leakage_amount
-FROM vw_rebate_gold
-GROUP BY parent_vendor_name, vendor_category
-HAVING COUNT(*) FILTER (WHERE leakage_flag = TRUE) > 0
-ORDER BY estimated_leakage_amount DESC NULLS LAST;
+    a.parent_vendor_name,
+    a.vendor_category,
+    a.leakage_transactions,
+    a.estimated_leakage_amount,
+    d.dominant_root_cause
+FROM agg a
+LEFT JOIN dominant d USING (parent_vendor_name)
+ORDER BY a.estimated_leakage_amount DESC NULLS LAST;
 
 CREATE OR REPLACE VIEW vw_leakage_reason_breakdown AS
 SELECT
@@ -456,9 +475,16 @@ SELECT
       1
     ) AS severity_score,
     CASE
-      WHEN drp_compliance_percentile >= 70 THEN 'Review DRP compliance workflow and carrier documentation'
-      WHEN cycle_time_percentile >= 70 THEN 'Inspect parts delay, LOR, and touch-time drivers'
-      WHEN csi_percentile >= 70 THEN 'Review CSI comments and customer communication cadence'
+      WHEN (CASE WHEN cycle_time_percentile >= 70 THEN 1 ELSE 0 END
+          + CASE WHEN csi_percentile >= 70 THEN 1 ELSE 0 END
+          + CASE WHEN drp_compliance_percentile >= 70 THEN 1 ELSE 0 END) >= 2
+        THEN 'Schedule performance manager review (multi-KPI risk)'
+      WHEN cycle_time_percentile >= csi_percentile AND cycle_time_percentile >= drp_compliance_percentile AND cycle_time_percentile >= 70
+        THEN 'Inspect parts delay, LOR, and touch-time drivers'
+      WHEN csi_percentile >= drp_compliance_percentile AND csi_percentile >= 70
+        THEN 'Review communication / delivery / supplement friction'
+      WHEN drp_compliance_percentile >= 70
+        THEN 'Review DRP compliance workflow and carrier documentation'
       ELSE 'Monitor trend; not a priority intervention'
     END AS recommended_intervention
 FROM ranked

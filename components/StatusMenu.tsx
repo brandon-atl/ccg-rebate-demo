@@ -6,6 +6,7 @@ import {
   type GroupKey,
   updateGroupFollowup,
 } from "@/app/actions/followup-action";
+import { useToast } from "@/components/Toaster";
 
 const labels: Record<FollowupStatus, string> = {
   new: "new",
@@ -31,6 +32,22 @@ const dotClass: Record<FollowupStatus, string> = {
   false_positive: "bg-rose-500",
 };
 
+const toastTone: Record<FollowupStatus, "neutral" | "good" | "warn" | "bad"> = {
+  new: "neutral",
+  in_progress: "warn",
+  claimed: "good",
+  unclaimable: "bad",
+  false_positive: "bad",
+};
+
+const toastDescription: Record<FollowupStatus, (shop?: string) => string> = {
+  new: (shop) => `${shop ?? "Case"} reopened. Back in the active queue.`,
+  in_progress: (shop) => `${shop ?? "Case"} flagged in progress. Outreach started.`,
+  claimed: (shop) => `${shop ?? "Case"} marked claimed. Dollars moved to recovered.`,
+  unclaimable: (shop) => `${shop ?? "Case"} marked unclaimable. Logged for rule training.`,
+  false_positive: (shop) => `${shop ?? "Case"} marked false positive. Logged for rule training.`,
+};
+
 const options: Array<{ value: FollowupStatus; label: string; helper: string }> = [
   { value: "new", label: "Mark new", helper: "Reopen the case" },
   { value: "in_progress", label: "Mark in progress", helper: "Outreach started" },
@@ -42,13 +59,20 @@ const options: Array<{ value: FollowupStatus; label: string; helper: string }> =
 export function StatusMenu({
   current,
   groupKey,
+  shopName,
+  onChange,
+  size = "default",
 }: {
   current: FollowupStatus;
   groupKey: GroupKey;
+  shopName?: string;
+  onChange?: (next: FollowupStatus) => void;
+  size?: "default" | "sm";
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const ref = useRef<HTMLDivElement | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (!open) return;
@@ -59,20 +83,41 @@ export function StatusMenu({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
 
-  const click = (value: FollowupStatus) => {
-    setOpen(false);
+  const apply = (value: FollowupStatus) => {
     startTransition(() => {
       void updateGroupFollowup(groupKey, value);
     });
   };
+
+  const click = (next: FollowupStatus) => {
+    setOpen(false);
+    if (next === current) return;
+    const previous = current;
+    onChange?.(next);
+    apply(next);
+    toast.push({
+      title: `Marked ${labels[next]}`,
+      description: toastDescription[next](shopName),
+      tone: toastTone[next],
+      onUndo: () => {
+        onChange?.(previous);
+        apply(previous);
+      },
+    });
+  };
+
+  const sizeClass = size === "sm" ? "text-[10.5px] py-[1px]" : "";
 
   return (
     <div className="relative inline-block" ref={ref}>
       <button
         type="button"
         disabled={pending}
-        onClick={() => setOpen((v) => !v)}
-        className={`status-pill border ${toneClass[current]} cursor-pointer transition-all duration-200 disabled:opacity-60`}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        className={`status-pill border ${toneClass[current]} cursor-pointer transition-all duration-200 disabled:opacity-60 ${sizeClass}`}
         aria-haspopup="menu"
         aria-expanded={open}
       >
@@ -91,7 +136,8 @@ export function StatusMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-full z-20 mt-1 w-56 origin-top-right rounded-md border border-rule bg-surface py-1 shadow-panel animate-in"
+          className="absolute right-0 top-full z-20 mt-1 w-56 origin-top-right rounded-md border border-rule bg-surface py-1 shadow-panel"
+          onClick={(e) => e.stopPropagation()}
         >
           {options.map((o) => {
             const active = o.value === current;

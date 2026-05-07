@@ -82,9 +82,9 @@ export function LorCorrelationChart({ data }: { data: LorPoint[] }) {
         </div>
       </div>
 
-      <div className="h-[240px] w-full">
+      <div className="h-[260px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 6, right: 14, left: 4, bottom: 0 }}>
+          <ScatterChart margin={{ top: 6, right: 14, left: 4, bottom: 22 }}>
             <CartesianGrid stroke="#EFEAE0" strokeDasharray="2 4" />
             <XAxis
               type="number"
@@ -95,7 +95,7 @@ export function LorCorrelationChart({ data }: { data: LorPoint[] }) {
               tickLine={false}
               axisLine={{ stroke: "#E5E1D8" }}
               fontSize={11}
-              label={{ value: "Length of rental (days)", position: "insideBottom", offset: -2, fontSize: 11, fill: "#64748B" }}
+              label={{ value: "Length of rental (days)", position: "insideBottom", offset: -10, fontSize: 11, fill: "#64748B" }}
             />
             <YAxis
               type="number"

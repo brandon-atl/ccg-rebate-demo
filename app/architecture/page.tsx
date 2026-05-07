@@ -50,9 +50,8 @@ export default async function ArchitecturePage() {
   return (
     <PageShell
       eyebrow="CCG · Technical Walkthrough"
-      title="Lakehouse-shaped artifact"
+      title="Lakehouse-Shaped Artifact"
       subtitle="One source pattern, one gold rule set, one action list, one feedback loop. The point is to show how it grows into ADF / ADLS / Power BI without becoming platform theater."
-      framingNote="Architecture transfers; the platform syntax doesn't. Same medallion shape will absorb CCC ONE and Square One next."
     >
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {layers.map((layer) => (

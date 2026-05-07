@@ -16,11 +16,14 @@ type Entity = {
 
 type Edge = { from: string; to: string; label?: string };
 
+// Visually distinct medallion palette — bronze (copper) / silver (slate) /
+// gold (amber-yellow) / feedback (indigo). Each layer reads as a different
+// color at a glance.
 const layerStyle: Record<Entity["layer"], { headBg: string; headText: string; bodyBg: string; ring: string; pill: string }> = {
-  bronze: { headBg: "#7C2D12", headText: "#fff", bodyBg: "#FFF7ED", ring: "#FED7AA", pill: "bronze · raw fact" },
-  silver: { headBg: "#475569", headText: "#fff", bodyBg: "#F8FAFC", ring: "#CBD5E1", pill: "silver · conformed dim" },
-  gold:   { headBg: "#92400E", headText: "#fff", bodyBg: "#FFFBEB", ring: "#FCD34D", pill: "gold · semantic" },
-  feedback: { headBg: "#1F2937", headText: "#fff", bodyBg: "#F1F5F9", ring: "#94A3B8", pill: "feedback loop" },
+  bronze:   { headBg: "#B45309", headText: "#fff", bodyBg: "#FFF7ED", ring: "#FDBA74", pill: "bronze · raw fact" },
+  silver:   { headBg: "#64748B", headText: "#fff", bodyBg: "#F1F5F9", ring: "#CBD5E1", pill: "silver · conformed dim" },
+  gold:     { headBg: "#CA8A04", headText: "#fff", bodyBg: "#FEFCE8", ring: "#FACC15", pill: "gold · semantic" },
+  feedback: { headBg: "#4338CA", headText: "#fff", bodyBg: "#EEF2FF", ring: "#A5B4FC", pill: "feedback loop" },
 };
 
 const ROW_H = 17;
@@ -326,16 +329,16 @@ export function DataModelDiagram() {
         })}
 
         {/* Legend */}
-        <g transform={`translate(24, ${H - 26})`}>
+        <g transform={`translate(24, ${H - 28})`}>
           {[
-            { label: "Bronze", fill: "#7C2D12" },
-            { label: "Silver", fill: "#475569" },
-            { label: "Gold", fill: "#92400E" },
-            { label: "Feedback", fill: "#1F2937" },
+            { label: "Bronze · raw fact", fill: "#B45309" },
+            { label: "Silver · conformed dim", fill: "#64748B" },
+            { label: "Gold · semantic", fill: "#CA8A04" },
+            { label: "Feedback loop", fill: "#4338CA" },
           ].map((l, i) => (
-            <g key={l.label} transform={`translate(${i * 92}, 0)`}>
-              <rect width="10" height="10" rx="2" fill={l.fill} />
-              <text x="14" y="9" fontSize="10" fill="#475569" fontFamily="'Segoe UI', sans-serif">
+            <g key={l.label} transform={`translate(${i * 158}, 0)`}>
+              <rect width="11" height="11" rx="2" fill={l.fill} />
+              <text x="16" y="10" fontSize="10.5" fill="#475569" fontFamily="'Segoe UI', sans-serif" fontWeight="500">
                 {l.label}
               </text>
             </g>

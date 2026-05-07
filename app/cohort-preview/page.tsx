@@ -17,9 +17,8 @@ export default async function CohortPreviewPage() {
   return (
     <PageShell
       eyebrow="CCG · Performance Mgmt"
-      title="Affiliate performance cohort preview"
+      title="Affiliate Performance Cohort Preview"
       subtitle="Companion view for the performance management team — same shop dimension, peer-relative cohorts. Useful when the conversation moves from rebate leakage to performance management."
-      framingNote="Peer-relative comparison protects the affiliate from network-average benchmarking that obscures genuine outliers."
     >
       <section className="grid grid-cols-2 gap-4 md:grid-cols-3">
         <MetricCard
@@ -92,6 +91,7 @@ export default async function CohortPreviewPage() {
           <h2 className="section-title">Top intervention candidates</h2>
           <p className="section-sub">
             How the dashboard becomes an outreach workflow rather than a chart gallery.
+            <span className="ml-1 text-ink-faint">Higher percentile = more severe outlier within peer cohort.</span>
           </p>
         </div>
         <div className="overflow-x-auto">
@@ -100,9 +100,9 @@ export default async function CohortPreviewPage() {
               <tr>
                 <th>Shop</th>
                 <th>Cohort</th>
-                <th className="text-right">Cycle pct</th>
-                <th className="text-right">CSI pct</th>
-                <th className="text-right">DRP pct</th>
+                <th className="text-right">Cycle outlier %</th>
+                <th className="text-right">CSI risk %</th>
+                <th className="text-right">DRP risk %</th>
                 <th>Recommended intervention</th>
               </tr>
             </thead>
