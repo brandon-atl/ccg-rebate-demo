@@ -79,6 +79,11 @@ export default async function DataQualityPage() {
             </tbody>
           </table>
         </div>
+        <div className="border-t border-rule px-5 py-3">
+          <p className="text-[12px] italic leading-5 text-ink-faint">
+            The Power BI deliverable carries a 25-row computed-vs-expected reconciliation scoreboard. This page shows the 6 pipeline gates upstream of that scoreboard — categorical pass/fail contracts that must hold before R3&rsquo;s numeric reconciliations run.
+          </p>
+        </div>
       </section>
     </PageShell>
   );
