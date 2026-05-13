@@ -60,9 +60,9 @@ export function PageShell({
       <footer className="border-t border-rule bg-canvas/60">
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-2 px-4 py-3 text-[11px] text-ink-faint md:px-6">
           <span>
-            Synthetic CCG-modeled data. No real affiliates, vendors, or transactions are represented. Bronze/silver/gold pipeline + Power BI surface.
+            Updated with real CCG dataset values for Round 3 reference. Cohort preview remains illustrative (Phase 2 segmentation logic). Canonical analysis lives in the Power BI deliverable.
           </span>
-          <span className="font-mono tabular-nums">v6 · gold model</span>
+          <span className="font-mono tabular-nums">v6 · R3 seed</span>
         </div>
       </footer>
     </div>
