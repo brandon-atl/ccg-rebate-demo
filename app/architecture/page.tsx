@@ -82,6 +82,64 @@ export default async function ArchitecturePage() {
         </div>
       </section>
 
+      {/* Inline footnote — Phase-2 generic names ↔ R3 PBIX names today.
+          Subtle background so it doesn't compete with the diagram above. */}
+      <section className="mt-3 rounded-md border border-rule bg-amber-50/60 px-5 py-4">
+        <div className="text-[11px] font-semibold uppercase tracking-meta text-amber-900">
+          Today&rsquo;s MVP mapping
+        </div>
+        <p className="mt-1 max-w-3xl text-[12px] leading-5 text-ink-muted">
+          Round 3 PBIX names map onto the Phase-2 destination diagram above. Same shape, different runtime layer.
+        </p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full font-mono text-[11.5px]">
+            <thead>
+              <tr className="border-b border-amber-200/80 text-[10.5px] uppercase tracking-meta text-amber-900/80">
+                <th className="py-1.5 pr-4 text-left font-semibold">Phase-2 (destination)</th>
+                <th className="py-1.5 text-left font-semibold">R3 PBIX (today)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-amber-100">
+              <tr>
+                <td className="py-1.5 pr-4 text-ink">fact_transaction</td>
+                <td className="py-1.5 text-ink-muted">Fact_RebateLine · <span className="tabular-nums">37,002 rows</span></td>
+              </tr>
+              <tr>
+                <td className="py-1.5 pr-4 text-ink">fact_rebate_claim</td>
+                <td className="py-1.5 text-ink-muted">Exception_Queue · <span className="tabular-nums">1,193 rows</span></td>
+              </tr>
+              <tr>
+                <td className="py-1.5 pr-4 text-ink">dim_shop</td>
+                <td className="py-1.5 text-ink-muted">Dim_Affiliate · <span className="tabular-nums">1,458</span> · <span className="tabular-nums">1,397 active</span> · <span className="tabular-nums">45 orphan</span></td>
+              </tr>
+              <tr>
+                <td className="py-1.5 pr-4 text-ink">dim_vendor</td>
+                <td className="py-1.5 text-ink-muted">Dim_Partner · <span className="tabular-nums">11</span></td>
+              </tr>
+              <tr>
+                <td className="py-1.5 pr-4 text-ink">dim_product</td>
+                <td className="py-1.5 text-ink-faint">Phase 2 — memo-parsed today; 30+ program families surface in memo text</td>
+              </tr>
+              <tr>
+                <td className="py-1.5 pr-4 text-ink">dim_program</td>
+                <td className="py-1.5 text-ink-faint">Phase 2 — same as dim_product</td>
+              </tr>
+              <tr>
+                <td className="py-1.5 pr-4 text-ink">vw_rebate_gold</td>
+                <td className="py-1.5 text-ink-muted">Exception_Queue + DQ_Issues + DQ_Checks (galaxy schema)</td>
+              </tr>
+              <tr>
+                <td className="py-1.5 pr-4 text-ink">fact_bi_followup</td>
+                <td className="py-1.5 text-ink-faint">Phase 2 — feedback labels not yet captured in R3</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-[11.5px] leading-5 text-ink-muted">
+          The Python file <span className="font-mono text-ink">build_exception_queue.py</span> is the silver→gold transform in the diagram above, stood up as a runnable MVP today.
+        </p>
+      </section>
+
       <section className="mt-5 grid gap-4 lg:grid-cols-3">
         <div className="panel lg:col-span-2">
           <div className="border-b border-rule px-5 py-3">
