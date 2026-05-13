@@ -129,7 +129,7 @@ Dev server confirmed running locally at port 3105. All 5 pages returned HTTP 200
 - [ ] If the panel asks about the trend chart x-axis, you can caveat it as 6-month illustrative.
 - [ ] Once approved: merge `feat/r3-real-data-seed` → `main` to promote to production (or keep it on the preview URL and reference both during the panel).
 
-## Commit history
+## Commit history (iteration 1)
 
 ```
 a4cabb8 seed(cohort + footer): mark Phase-2 banner, retarget disclaimer
@@ -138,4 +138,33 @@ a4cabb8 seed(cohort + footer): mark Phase-2 banner, retarget disclaimer
 f6ff435 seed(landing): hardcode R3 KPI tiles + 11-partner exception leaderboard
 547b536 seed: swap synthetic queries for R3-aligned static fixtures
 a138787 V6: stable canonical root_cause + working undo + meaningful QoQ   ← branch point (main)
+```
+
+## Iteration 2 — Architecture mapping + DQ pointer (2026-05-13)
+
+**Branch:** `feat/r3-arch-mapping`  
+**Branched from:** `main` (post-merge of iteration 1; commit `dddec9c`)  
+**Production status:** iteration 1 merged to `main` and deployed live at `https://ccg-rebate-demo.vercel.app/`. Verified all 5 pages return 200; landing renders $199,429.54 / $137,456.49 / 49.2% / Klean Strip; no synthetic vendor names remain.
+
+### Changes
+
+1. **`app/architecture/page.tsx`** — Added "Today's MVP mapping" inline footnote card directly below the data-model diagram section. Maps Phase-2 generic table names to R3 PBIX names (`fact_transaction → Fact_RebateLine · 37,002 rows`, `dim_shop → Dim_Affiliate · 1,458 / 1,397 active / 45 orphan`, `dim_vendor → Dim_Partner · 11`, etc.). Closing line points at `build_exception_queue.py` as the silver→gold transform runnable today. Styled as `amber-50/60` bg with monospace mapping rows so it reads like a footnote, not a competing element.
+
+2. **`app/data-quality/page.tsx`** — Added small italic prose footer inside the Quality Checks card (below the 6-row table, separated by `border-t border-rule`): "The Power BI deliverable carries a 25-row computed-vs-expected reconciliation scoreboard. This page shows the 6 pipeline gates upstream of that scoreboard — categorical pass/fail contracts that must hold before R3's numeric reconciliations run." No 7th check row added — the pointer is prose, not a check.
+
+3. **`app/action-list/page.tsx`** — **SKIPPED.** The Root Cause filter is rendered via the shared `SlicerBar` component, which iterates over a generic `SlicerSpec[]` type. Attaching a tooltip to one specific slicer requires either (a) extending `SlicerSpec` and `SlicerBar` with optional info-prop support — shared-component surgery for one consumer, or (b) floating a free-standing tooltip near the filter that visually competes with the slicer chrome. Both fail the spec's "skip if non-trivial" guidance and would creep into UI redesign territory. The V6 narrative survives without the legend because (i) the architecture page now carries the Phase-2 ↔ R3 mapping table, and (ii) Brandon will explain Phase-2 framing verbally if a panelist asks why the dropdown shows "Claim workflow gap" instead of "HAG".
+
+### What this iteration does NOT change
+
+- Phase-2 architecture diagram (generic `dim_shop` / `dim_vendor` / `fact_transaction` names preserved — Anthony saw this diagram in R2).
+- 6 DQ pipeline-gate checks (R3's 25-row scoreboard is referenced as prose, not duplicated as rows).
+- V6 Phase-2 root cause categories on the action list (the dropdown values remain Phase-2 destination categories).
+- Page layouts (no new components introduced; styling reused).
+
+### Iteration 2 commit history
+
+```
+0df0f10 feat(data-quality): point at PBI 25-row reconciliation scoreboard
+5ec0312 feat(architecture): add 'Today's MVP mapping' inline footnote card
+dddec9c feat: seed V6 demo with R3 canonical numbers for panel reference   ← branch point (main, iteration 1 merge)
 ```
