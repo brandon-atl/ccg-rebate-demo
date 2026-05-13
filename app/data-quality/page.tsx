@@ -1,8 +1,7 @@
 import { MetricCard } from "@/components/MetricCard";
 import { PageShell } from "@/components/PageShell";
 import { StaticContextStrip } from "@/components/SlicerBar";
-import { getDataQualitySummary, getQualityChecks } from "@/lib/queries";
-import { number } from "@/lib/format";
+import { getQualityChecks } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -13,15 +12,12 @@ const toneClass: Record<string, string> = {
 };
 
 export default async function DataQualityPage() {
-  const [summary, checks] = await Promise.all([
-    getDataQualitySummary(),
-    getQualityChecks(),
-  ]);
+  const checks = await getQualityChecks();
   return (
     <PageShell
       eyebrow="CCG · Trust Layer"
       title="Data Quality &amp; Maturity Safeguards"
-      subtitle="Pipeline trust view: row counts, grain checks, returns/voids exclusion, vendor crosswalk usage, and the 60-day rebate maturity rule. Every flag downstream is gated by these checks."
+      subtitle="Pipeline trust view: row counts, grain checks, returns/reversals separation, affiliate crosswalk usage, and the 60-day rebate maturity rule. Every flag downstream is gated by these checks."
       showSlicer={false}
     >
       <div className="mb-4 md:mb-5">
@@ -29,24 +25,24 @@ export default async function DataQualityPage() {
       </div>
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <MetricCard
-          label="Raw transactions"
-          value={number(summary.total_transactions)}
-          helper="bronze fact_transaction"
+          label="Raw input"
+          value="37,002"
+          helper="rebate lines over 8,813 transactions"
         />
         <MetricCard
-          label="Eligible gold rows"
-          value={number(summary.eligible_rows)}
-          helper="post-join, post-eligibility"
+          label="Exception candidates"
+          value="1,193"
+          helper="post-rule-evaluation"
         />
         <MetricCard
-          label="Immature excluded"
-          value={number(summary.immature_transaction_count)}
-          helper="younger than 60 days"
+          label="Latest mature period"
+          value="2026-02-01"
+          helper="100% of Feb rebates posted by day 60"
         />
         <MetricCard
-          label="Vendor crosswalk hits"
-          value={number(summary.vendor_crosswalk_count)}
-          helper="parent ≠ subsidiary mapped"
+          label="Affiliate crosswalk"
+          value="1,458"
+          helper="in dim · 1,397 active · 45 orphan"
         />
       </section>
 
